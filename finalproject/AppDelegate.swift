@@ -2,7 +2,7 @@
 //  AppDelegate.swift
 //  finalproject
 //
-//  Created by Brad Richardson on 3/1/16.
+//  Created by Taylor Dixon on 3/1/16.
 //  Copyright © 2016 USU. All rights reserved.
 //
 
