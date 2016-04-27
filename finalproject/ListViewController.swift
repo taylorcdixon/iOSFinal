@@ -13,16 +13,19 @@ class ListViewController: UITableViewController {
     
     var eventStore: EKEventStore!
     var reminders: [EKReminder]!
+    //var numerOfRowsInSection: [Int]
+    
     
     override func viewWillAppear(animated: Bool) {
         super.viewWillAppear(true)
-        // 1
+        
         self.eventStore = EKEventStore()
         self.reminders = [EKReminder]()
+        
+        //permission
         self.eventStore.requestAccessToEntityType(EKEntityType.Reminder) { (granted: Bool, error: NSError?) -> Void in
             
             if granted{
-                // 2
                 let predicate = self.eventStore.predicateForRemindersInCalendars(nil)
                 self.eventStore.fetchRemindersMatchingPredicate(predicate, completion: { (reminders: [EKReminder]?) -> Void in
                     
@@ -37,27 +40,72 @@ class ListViewController: UITableViewController {
         }
     }
     
+    //SEGUE PREP
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        let destNavVC = segue.destinationViewController as! UINavigationController
+        let newReminderVC = destNavVC.topViewController as! AddReminder
+        newReminderVC.eventStore = eventStore
+    }
     
-}
-
-extension ViewController: UITableViewDataSource {
-    func numberOfSectionsInTableView(tableView: UITableView) -> Int {
+    //LOAD REMINDERS
+    override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
         return 1
     }
     
-    func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+//    override func tableView(tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+//        if section == 0{
+//            return "Today"
+//        }
+//        else {
+//            return "Later"
+//        }
+//    }
+    
+    override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return reminders.count
     }
     
-    func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCellWithIdentifier("cell", forIndexPath: indexPath)
+    override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         
-        cell.textLabel?.text = self.reminders![indexPath.row].title
+        let cell:UITableViewCell! = tableView.dequeueReusableCellWithIdentifier("cell")
+        let reminder:EKReminder! = reminders![indexPath.row]
+        cell.textLabel?.text = reminder.title
+        let formatter:NSDateFormatter = NSDateFormatter()
+        formatter.dateStyle = .MediumStyle
+        if let dueDate = reminder.dueDateComponents?.date{
+            cell.detailTextLabel?.text = formatter.stringFromDate(dueDate)
+        }else{
+            cell.detailTextLabel?.text = "no due date"
+        }
         
         return cell
     }
-}
-
-extension ViewController: UITableViewDelegate{
+    
+    override func tableView(tableView: UITableView, didSelectRowAtIndexPath indexPath: NSIndexPath) {
+        let reminder: EKReminder = reminders[indexPath.row]
+        do{
+            try eventStore.removeReminder(reminder, commit: true)
+            self.reminders.removeAtIndex(indexPath.row)
+            tableView.deleteRowsAtIndexPaths([indexPath], withRowAnimation: UITableViewRowAnimation.Fade)
+        }catch{
+            print("An error occurred while removing the reminder from the Calendar database: \(error)")
+        }
+    }
+    
+    
+    //SWIPE DELETE
+    override func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
+        
+        
+        let reminder: EKReminder = reminders[indexPath.row]
+        do{
+            try eventStore.removeReminder(reminder, commit: true)
+            self.reminders.removeAtIndex(indexPath.row)
+            tableView.deleteRowsAtIndexPaths([indexPath], withRowAnimation: UITableViewRowAnimation.Fade)
+        }catch{
+            print("An error occurred while removing the reminder from the Calendar database: \(error)")
+        }
+    }
+    
     
 }
